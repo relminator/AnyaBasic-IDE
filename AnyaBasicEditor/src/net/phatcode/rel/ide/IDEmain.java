@@ -42,7 +42,7 @@ public class IDEmain extends JFrame
 {
     private static final long serialVersionUID = 1L;
     private ToolBar toolBar;
-    private JTextPane textPane;
+    private JTextPanePlus textPane;
     private JTextArea textOutput;
     private PrintStream printStream;
     private LineNumbersView lineNumbers;
@@ -111,7 +111,7 @@ public class IDEmain extends JFrame
         }
 
         toolBar = new ToolBar();
-        textPane = new JTextPane();
+        textPane = new JTextPanePlus();
         lineNumbers = new LineNumbersView(textPane);
         menu = new Menu();
 
@@ -135,7 +135,7 @@ public class IDEmain extends JFrame
         System.setErr(printStream);
 
         JScrollPane scrollPane = new JScrollPane(textPane, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+                JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 
         JScrollPane scrollPaneBottom = new JScrollPane(textOutput, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -608,7 +608,7 @@ public class IDEmain extends JFrame
         relativeFolder = "";
     }
 
-    public JTextPane getTextPane()
+    public JTextPanePlus getTextPane()
     {
         return textPane;
     }

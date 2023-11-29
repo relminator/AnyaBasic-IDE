@@ -50,7 +50,7 @@ public class ToolBar extends JToolBar
 	private IDEmain ideMain;
     
 	private Lexer lexer;
-	private JTextPane textPane;
+	private JTextPanePlus textPane;
 	private JTextArea textOutput;
 	//private IDEmain ideMain;
 	
@@ -626,7 +626,7 @@ public class ToolBar extends JToolBar
 	}
 	
 
-	public void setTextPane(JTextPane textPane)
+	public void setTextPane(JTextPanePlus textPane)
 	{
 		this.textPane = textPane;
 	}

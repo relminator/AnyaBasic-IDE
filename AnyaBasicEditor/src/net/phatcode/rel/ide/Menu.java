@@ -23,6 +23,7 @@ import javax.swing.UIManager;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.Element;
 import javax.swing.text.Utilities;
 
 import com.formdev.flatlaf.FlatDarculaLaf;
@@ -38,7 +39,7 @@ public class Menu extends JMenuBar
 	private JMenu settings = new JMenu("Settings");
 	private JMenu help = new JMenu("Help");
 	private Container parent;
-	private JTextPane textPane;
+	private JTextPanePlus textPane;
 	private IDEmain ideMain;
 	private SourceProcessor sourceProcessor = new SourceProcessor();
 	
@@ -580,7 +581,37 @@ public class Menu extends JMenuBar
 	            System.out.println("Row: " + rowNum);
 	            try
                 {
-                    System.out.println("Text" + textPane.getText(caretPos, 30));
+	                //pane.setCaretPosition(pane.getDocument().
+                    //      getDefaultRootElement().
+                    //      getElement(4).getStartOffset());
+	                int s = textPane.getDocument().
+	                          getDefaultRootElement().
+	                          getElement(rowNum-1).getStartOffset();
+	                int ed = textPane.getDocument().
+                            getDefaultRootElement().
+                            getElement(rowNum-1).getEndOffset()-s;
+	                String text = textPane.getText(s, ed);
+	                System.out.println("Text:  " + text);
+//	                ed = 0;
+//	                int i = 0;
+//	                while( i < text.length()  )
+//	                {
+//	                    if((text.charAt(i) == '\n') ) break;
+//	                    ed++;
+//	                    i++;
+//	                }
+	                    
+//                    System.out.println("Text:  " + text);
+//                    System.out.println("Caret: " + caretPos);
+//                    System.out.println("Start: " + s);
+//                    System.out.println("End:   " + ed);
+//                    System.out.println("Txted:   " + textPane.getText(s, ed));
+                    
+                    //Element root =textPane.getDocument().getDefaultRootElement();
+                    //Element first = root.getElement(rowNum-1);
+                    //String txt = textPane.getDocument().getText(first.getStartOffset(), first.getEndOffset());
+                    //System.out.println("Txt:   " + txt);
+                    
                 } catch (BadLocationException e)
                 {
                     // TODO Auto-generated catch block
@@ -629,7 +660,7 @@ public class Menu extends JMenuBar
 	
 
 
-	public void setTextPane(JTextPane textPane)
+	public void setTextPane(JTextPanePlus textPane)
 	{
 		this.textPane = textPane;
 	}
