@@ -51,8 +51,10 @@ public class LineNumbersView extends JComponent implements DocumentListener, Car
 		super.paintComponent(g);
 
 		Rectangle clip = g.getClipBounds();
-		int startOffset = editor.viewToModel(new Point(0, clip.y));
-		int endOffset = editor.viewToModel(new Point(0, clip.y + clip.height));
+		@SuppressWarnings("deprecation")
+        int startOffset = editor.viewToModel(new Point(0, clip.y));
+		@SuppressWarnings("deprecation")
+        int endOffset = editor.viewToModel(new Point(0, clip.y + clip.height));
 
 		// init first line
 		g.setColor(getBackground());
@@ -102,13 +104,13 @@ public class LineNumbersView extends JComponent implements DocumentListener, Car
 	 * Returns the y axis position for the line number belonging to the element at
 	 * the given (start) offset in the model.
 	 */
-	@SuppressWarnings("deprecation")
-    private int getOffsetY(int offset) throws BadLocationException
+	private int getOffsetY(int offset) throws BadLocationException
 	{
 		FontMetrics fontMetrics = editor.getFontMetrics(editor.getFont());
 		int descent = fontMetrics.getDescent();
 
-		Rectangle r = editor.modelToView(offset);
+		@SuppressWarnings("deprecation")
+        Rectangle r = editor.modelToView(offset);
 		int y = r.y + r.height - descent;
 
 		return y;

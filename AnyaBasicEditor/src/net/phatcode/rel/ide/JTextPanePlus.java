@@ -1,6 +1,6 @@
 // A nice utility JTextPane class that disables wordwrapping
 // by  Rob Camick
-
+// https://tips4java.wordpress.com/2009/01/25/no-wrap-text-pane/
 
 package net.phatcode.rel.ide;
 

@@ -1,3 +1,8 @@
+// A nice little class that redirects console output to a JTextArea
+// Written by:  Nam Ha Minh
+// https://www.codejava.net/java-se/swing/redirect-standard-output-streams-to-jtextarea
+
+
 package net.phatcode.rel.ide;
 
 import java.io.IOException;

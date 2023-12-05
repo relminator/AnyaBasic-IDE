@@ -1,3 +1,8 @@
+// I forgot where I got this nice piece of code(SO most likely)
+// I may have modified this code though basing on the commented codes.
+// I you think this is your code, give me a holler and I'll
+// put your name here.
+
 package net.phatcode.rel.ide;
 
 import java.awt.Toolkit;

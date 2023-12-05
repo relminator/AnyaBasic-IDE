@@ -1,3 +1,36 @@
+/********************************************************************
+ *  IDEMain.java
+ *  Entry point/main class
+ * 
+ *  Richard Eric Lope BSN RN
+ *  http://rel.phatcode.net
+ *  
+ * License MIT: 
+ * Copyright (c) 2023 Richard Eric Lope 
+
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do
+ * so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software. (As clarification, there is no
+ * requirement that the copyright notice and permission be included in binary
+ * distributions of the Software.)
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ *
+ *******************************************************************/
+
 package net.phatcode.rel.ide;
 
 import java.awt.BorderLayout;
@@ -22,7 +55,6 @@ import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
-import javax.swing.JTextPane;
 import javax.swing.JTree;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
@@ -65,10 +97,9 @@ public class IDEmain extends JFrame
 
     private SourceProcessor sourceProcessor = new SourceProcessor();
 
-    private String currentFileName = "";
-    private String currentFileNameFolder = "samples";
-    private String relativeFolder = "samples";
-
+    private String currentFileName = "temp001.abs";
+    private String currentFileNameFolder = "myprograms";
+    
     private Font editorFont;
     private float fontSize = 14f;
 
@@ -135,7 +166,7 @@ public class IDEmain extends JFrame
         System.setErr(printStream);
 
         JScrollPane scrollPane = new JScrollPane(textPane, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-                JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
         JScrollPane scrollPaneBottom = new JScrollPane(textOutput, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -179,7 +210,15 @@ public class IDEmain extends JFrame
     {
 
         menu.setTextPane(textPane);
-        menu.setFrame(this);
+        menu.setIdeMain(this);
+        menu.setSourceProcessor(sourceProcessor);
+        menu.setSourceTree(sourceTree);
+        menu.setWorkspaceTree(workspaceTree);
+        menu.setNodeRoot(nodeRoot);
+        menu.setNodeTypes(nodeTypes);
+        menu.setNodeFuncs(nodeFuncs);
+        menu.setNodeVars(nodeVars);
+        menu.setWpNodeRoot(wpNodeRoot);
         menu.setEditorFont(editorFont);
         menu.setFontSize(fontSize);
 
@@ -191,16 +230,16 @@ public class IDEmain extends JFrame
         toolBar.setSourceProcessor(sourceProcessor);
         toolBar.setSourceTree(sourceTree);
         toolBar.setWorkspaceTree(workspaceTree);
-        toolBar.setCurrentFileNameFolder(currentFileNameFolder);
-        toolBar.setCurrentFileName(currentFileName);
         toolBar.setNodeRoot(nodeRoot);
         toolBar.setNodeTypes(nodeTypes);
         toolBar.setNodeFuncs(nodeFuncs);
         toolBar.setNodeVars(nodeVars);
         toolBar.setWpNodeRoot(wpNodeRoot);
 
+        toolBar.updateSaveRunButtons();
+        menu.updateSaveItems();
+        
         textPane.addMouseListener(new ContextMenuMouseListener());
-
     }
 
     private void setTextPaneDefaults()
@@ -214,29 +253,32 @@ public class IDEmain extends JFrame
             textPane.setFont(editorFont);
         }
 
+
         textPane.getDocument().addDocumentListener(new DocumentListener()
         {
 
+            
             @Override
-
             public void changedUpdate(DocumentEvent arg0)
             {
-                
             }
 
             @Override
-
             public void insertUpdate(DocumentEvent arg0)
             {
 
+                toolBar.updateSaveRunButtons();
+                menu.updateSaveItems();
             }
 
             @Override
-
             public void removeUpdate(DocumentEvent arg0)
             {
 
+                toolBar.updateSaveRunButtons();
+                menu.updateSaveItems();
             }
+
 
         });
     }
@@ -374,6 +416,7 @@ public class IDEmain extends JFrame
 
         DefaultTreeModel model = (DefaultTreeModel) sourceTree.getModel();
         model.reload(nodeRoot);
+     
         // expand tree
         JTree tree = sourceTree;
         int rows = tree.getRowCount();
@@ -384,6 +427,89 @@ public class IDEmain extends JFrame
 
     }
 
+    public void sourceTreeReprocess( String currentFileName, 
+                                     String currentFileNameFolder )
+    {
+        
+        boolean success = false;
+        BufferedReader input;
+        try
+        {
+            input = new BufferedReader(new InputStreamReader(
+                    new FileInputStream(currentFileNameFolder + "/" + currentFileName)));
+            textPane.read(input, "READING FILE");
+            success = true;
+        } catch (FileNotFoundException e1)
+        {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        } catch (IOException e1)
+        {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
+
+        if (success)
+        {
+
+            nodeTypes.removeAllChildren();
+            nodeVars.removeAllChildren();
+            nodeFuncs.removeAllChildren();
+
+            sourceProcessor.tokenize(textPane.getText());
+            sourceProcessor.processTokens();
+            types = sourceProcessor.getTypes();
+            variables = sourceProcessor.getVariables();
+            functions = sourceProcessor.getFunctions();
+
+            for (String s : types)
+            {
+                DefaultMutableTreeNode types = new DefaultMutableTreeNode(s);
+                nodeTypes.add(types);
+
+            }
+
+            for (String s : variables)
+            {
+                DefaultMutableTreeNode vars = new DefaultMutableTreeNode(s);
+                nodeVars.add(vars);
+
+            }
+
+            for (String s : functions)
+            {
+                DefaultMutableTreeNode funcs = new DefaultMutableTreeNode(s);
+                nodeFuncs.add(funcs);
+
+            }
+
+            // reset tree
+            DefaultTreeModel model = (DefaultTreeModel) sourceTree.getModel();
+            model.reload(nodeRoot);
+            // expand tree
+            JTree tree = sourceTree;
+            int rows = tree.getRowCount();
+            for (int r = rows - 1; r > -1; r--)
+            {
+                tree.expandRow(r);
+            }
+            // set cursor to 5th row
+            //JTextPane pane = textPane;
+            //pane.setCaretPosition(
+            //        pane.getDocument().getDefaultRootElement().getElement(4).getStartOffset());
+            
+            // get number of lines
+            Element root = textPane.getDocument().getDefaultRootElement();
+            System.out.println( "Elements: " + root.getElementCount());
+            // get 
+            
+            toolBar.updateSaveRunButtons();
+            menu.updateSaveItems();
+            
+        }
+    
+    }
+   
     private void setTreeWorkspaceDefaults()
     {
         wpNodeRoot = new DefaultMutableTreeNode("WORKSPACE EXPLORER        ");
@@ -400,8 +526,77 @@ public class IDEmain extends JFrame
         }
 
         workspaceTree.setShowsRootHandles(true);
+        
+        currentFileNameFolder = "myprograms";
+        treeWorkspaceProcessDirectories();
+        currentFileNameFolder = "samples";
+        treeWorkspaceProcessDirectories();
+        
+        workspaceTree.getSelectionModel().addTreeSelectionListener(new TreeSelectionListener()
+        {
+            @Override
+            public void valueChanged(TreeSelectionEvent e)
+            {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) workspaceTree.getLastSelectedPathComponent();
 
-        File fileRoot = new File(relativeFolder + "/");
+                if (node == null)
+                {
+                    return;
+                }
+
+                if (node.isLeaf())
+                {
+                    String nodeName = node.getUserObject().toString();
+                    currentFileName = nodeName;
+                    currentFileNameFolder = node.getParent().toString();
+                   
+                    sourceTreeReprocess(currentFileName, currentFileNameFolder);
+                    
+                    System.out.println(nodeName);
+                    System.out.println("relativepath = " + currentFileNameFolder);
+                    System.out.println("IsLeaf = " + node.isLeaf());
+
+                } // isLeaf
+            }
+
+        });
+
+    }
+    
+    public void workSpaceTreeReset()
+    {
+        Font sFont = editorFont.deriveFont(Font.TRUETYPE_FONT, textPane.getFont().getSize() - 2);
+        workspaceTree.setFont(sFont);
+
+        workspaceTree.setShowsRootHandles(true);
+
+        DefaultTreeCellRenderer renderer = (DefaultTreeCellRenderer) workspaceTree.getCellRenderer();
+
+        ImageIcon leafIcon = new ImageIcon(this.getClass().getClassLoader().getResource("gfx/wptree_button.png"));
+        ImageIcon openIcon = new ImageIcon(
+                this.getClass().getClassLoader().getResource("gfx/wptree_button_parent_open.png"));
+        ImageIcon closeIcon = new ImageIcon(
+                this.getClass().getClassLoader().getResource("gfx/wptree_button_parent_close.png"));
+
+        renderer.setLeafIcon(leafIcon);
+        renderer.setOpenIcon(openIcon);
+        renderer.setClosedIcon(closeIcon);
+
+        DefaultTreeModel model = (DefaultTreeModel) workspaceTree.getModel();
+        model.reload(wpNodeRoot);
+        // expand tree
+        JTree tree = workspaceTree;
+        int rows = tree.getRowCount();
+        for (int r = rows - 1; r > -1; r--)
+        {
+            tree.expandRow(r);
+        }
+
+    }
+
+    public void treeWorkspaceProcessDirectories()
+    {
+        File fileRoot = new File(currentFileNameFolder + "/");
         // System.out.println("folder-root = " + fileRoot.getName());
 
         DefaultMutableTreeNode nodeFolder = new DefaultMutableTreeNode(fileRoot.getName());
@@ -455,139 +650,6 @@ public class IDEmain extends JFrame
             tree.expandRow(r);
         }
 
-        workspaceTree.getSelectionModel().addTreeSelectionListener(new TreeSelectionListener()
-        {
-            @Override
-            public void valueChanged(TreeSelectionEvent e)
-            {
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) workspaceTree.getLastSelectedPathComponent();
-
-                if (node == null)
-                {
-                    return;
-                }
-
-                if (node.isLeaf())
-                {
-                    String nodeName = node.getUserObject().toString();
-                    currentFileName = nodeName;
-                    currentFileNameFolder = node.getParent().toString();
-                    toolBar.setCurrentFileNameFolder(currentFileNameFolder);
-                    toolBar.setCurrentFileName(currentFileName);
-
-                    System.out.println(nodeName);
-                    System.out.println("relativepath = " + currentFileNameFolder);
-                    System.out.println("IsLeaf = " + node.isLeaf());
-
-                    boolean success = false;
-                    BufferedReader input;
-                    try
-                    {
-                        input = new BufferedReader(new InputStreamReader(
-                                new FileInputStream(currentFileNameFolder + "/" + currentFileName)));
-                        textPane.read(input, "READING FILE");
-                        success = true;
-                    } catch (FileNotFoundException e1)
-                    {
-                        // TODO Auto-generated catch block
-                        e1.printStackTrace();
-                    } catch (IOException e1)
-                    {
-                        // TODO Auto-generated catch block
-                        e1.printStackTrace();
-                    }
-
-                    if (success)
-                    {
-
-                        nodeTypes.removeAllChildren();
-                        nodeVars.removeAllChildren();
-                        nodeFuncs.removeAllChildren();
-
-                        sourceProcessor.tokenize(textPane.getText());
-                        sourceProcessor.processTokens();
-                        types = sourceProcessor.getTypes();
-                        variables = sourceProcessor.getVariables();
-                        functions = sourceProcessor.getFunctions();
-
-                        for (String s : types)
-                        {
-                            DefaultMutableTreeNode types = new DefaultMutableTreeNode(s);
-                            nodeTypes.add(types);
-
-                        }
-
-                        for (String s : variables)
-                        {
-                            DefaultMutableTreeNode vars = new DefaultMutableTreeNode(s);
-                            nodeVars.add(vars);
-
-                        }
-
-                        for (String s : functions)
-                        {
-                            DefaultMutableTreeNode funcs = new DefaultMutableTreeNode(s);
-                            nodeFuncs.add(funcs);
-
-                        }
-
-                        // reset tree
-                        DefaultTreeModel model = (DefaultTreeModel) sourceTree.getModel();
-                        model.reload(nodeRoot);
-                        // expand tree
-                        JTree tree = sourceTree;
-                        int rows = tree.getRowCount();
-                        for (int r = rows - 1; r > -1; r--)
-                        {
-                            tree.expandRow(r);
-                        }
-                        // set cursor to 5th row
-                        //JTextPane pane = textPane;
-                        //pane.setCaretPosition(
-                        //        pane.getDocument().getDefaultRootElement().getElement(4).getStartOffset());
-                        
-                        // get number of lines
-                        Element root = textPane.getDocument().getDefaultRootElement();
-                        System.out.println( "Elements: " + root.getElementCount());
-                        // get 
-                    }
-
-                } // isLeaf
-            }
-
-        });
-
-    }
-
-    public void workSpaceTreeReset()
-    {
-        Font sFont = editorFont.deriveFont(Font.TRUETYPE_FONT, textPane.getFont().getSize() - 2);
-        workspaceTree.setFont(sFont);
-
-        workspaceTree.setShowsRootHandles(true);
-
-        DefaultTreeCellRenderer renderer = (DefaultTreeCellRenderer) workspaceTree.getCellRenderer();
-
-        ImageIcon leafIcon = new ImageIcon(this.getClass().getClassLoader().getResource("gfx/wptree_button.png"));
-        ImageIcon openIcon = new ImageIcon(
-                this.getClass().getClassLoader().getResource("gfx/wptree_button_parent_open.png"));
-        ImageIcon closeIcon = new ImageIcon(
-                this.getClass().getClassLoader().getResource("gfx/wptree_button_parent_close.png"));
-
-        renderer.setLeafIcon(leafIcon);
-        renderer.setOpenIcon(openIcon);
-        renderer.setClosedIcon(closeIcon);
-
-        DefaultTreeModel model = (DefaultTreeModel) workspaceTree.getModel();
-        model.reload(wpNodeRoot);
-        // expand tree
-        JTree tree = workspaceTree;
-        int rows = tree.getRowCount();
-        for (int r = rows - 1; r > -1; r--)
-        {
-            tree.expandRow(r);
-        }
-
     }
 
     public void reset()
@@ -602,10 +664,12 @@ public class IDEmain extends JFrame
         pack();
         sourceTreeReset();
         workSpaceTreeReset();
-
+        
+        toolBar.updateSaveRunButtons();
+        menu.updateSaveItems();
+        
         currentFileName = "";
         currentFileNameFolder = "";
-        relativeFolder = "";
     }
 
     public JTextPanePlus getTextPane()
@@ -709,9 +773,15 @@ public class IDEmain extends JFrame
         return currentFileNameFolder;
     }
 
-    public String getRelativeFolder()
+    
+    public void setCurrentFileName(String currentFileName)
     {
-        return relativeFolder;
+        this.currentFileName = currentFileName;
+    }
+
+    public void setCurrentFileNameFolder(String currentFileNameFolder)
+    {
+        this.currentFileNameFolder = currentFileNameFolder;
     }
 
     private void checkOS()
@@ -719,10 +789,10 @@ public class IDEmain extends JFrame
         String nameOS = "os.name";
         String versionOS = "os.version";
         String architectureOS = "os.arch";
-        System.out.println("\n    The information about OS");
-        System.out.println("\nName of the OS: " + System.getProperty(nameOS));
-        System.out.println("Version of the OS: " + System.getProperty(versionOS));
-        System.out.println("Architecture of THe OS: " + System.getProperty(architectureOS));
+        System.out.println("<OS Info>");
+        System.out.println("Name: " + System.getProperty(nameOS));
+        System.out.println("Version: " + System.getProperty(versionOS));
+        System.out.println("Architecture: " + System.getProperty(architectureOS));
 
     }
 

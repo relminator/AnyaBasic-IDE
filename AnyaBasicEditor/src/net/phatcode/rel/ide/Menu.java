@@ -1,3 +1,35 @@
+/********************************************************************
+ *  Menu.java
+ * 
+ *  Richard Eric Lope BSN RN
+ *  http://rel.phatcode.net
+ *  
+ * License MIT: 
+ * Copyright (c) 2023 Richard Eric Lope 
+
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do
+ * so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software. (As clarification, there is no
+ * requirement that the copyright notice and permission be included in binary
+ * distributions of the Software.)
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ *
+ *******************************************************************/
+
 package net.phatcode.rel.ide;
 
 import java.awt.Container;
@@ -6,8 +38,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.io.File;
-import java.io.FilenameFilter;
 import java.net.URL;
+import java.util.List;
 
 import javax.swing.Box;
 import javax.swing.ImageIcon;
@@ -17,14 +49,14 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
-import javax.swing.JTextPane;
+import javax.swing.JTree;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.BadLocationException;
-import javax.swing.text.Element;
 import javax.swing.text.Utilities;
+import javax.swing.tree.DefaultMutableTreeNode;
 
 import com.formdev.flatlaf.FlatDarculaLaf;
 import com.formdev.flatlaf.FlatDarkLaf;
@@ -38,12 +70,27 @@ public class Menu extends JMenuBar
 	private JMenu file = new JMenu("File");
 	private JMenu settings = new JMenu("Settings");
 	private JMenu help = new JMenu("Help");
+	private JMenuItem saveMenuItem;
+    private JMenuItem saveAsMenuItem;
+    
 	private Container parent;
 	private JTextPanePlus textPane;
 	private IDEmain ideMain;
-	private SourceProcessor sourceProcessor = new SourceProcessor();
-	
-	private Font editorFont;
+	private SourceProcessor sourceProcessor;;
+    private JTree sourceTree;
+    private JTree workspaceTree;
+    
+    private List<String> types;
+    private List<String> variables;
+    private List<String> functions;
+    
+    private DefaultMutableTreeNode nodeRoot;
+    private DefaultMutableTreeNode nodeTypes;
+    private DefaultMutableTreeNode nodeVars;
+    private DefaultMutableTreeNode nodeFuncs;
+    private DefaultMutableTreeNode wpNodeRoot;
+    
+    private Font editorFont;
     private float fontSize;
     
 	public Menu()
@@ -54,11 +101,11 @@ public class Menu extends JMenuBar
 		URL imageUrl = this.getClass().getClassLoader().getResource("gfx/cancel.png");
 		ImageIcon exit = new ImageIcon(imageUrl);
 		
-		imageUrl = this.getClass().getClassLoader().getResource("gfx/info.png");
+		imageUrl = this.getClass().getClassLoader().getResource("gfx/new_file.png");
+        ImageIcon newFile = new ImageIcon(imageUrl);
+        
+        imageUrl = this.getClass().getClassLoader().getResource("gfx/open.png");
 		ImageIcon open = new ImageIcon(imageUrl);
-		
-		imageUrl = this.getClass().getClassLoader().getResource("gfx/info.png");
-		ImageIcon folder = new ImageIcon(imageUrl);
 		
 		imageUrl = this.getClass().getClassLoader().getResource("gfx/info.png");
 		ImageIcon save = new ImageIcon(imageUrl);
@@ -73,191 +120,107 @@ public class Menu extends JMenuBar
         
         // --------file----------------
 		file.setMnemonic(KeyEvent.VK_F);
-  
-		JMenuItem openMenuItem = new JMenuItem("Load Images", open);
+
+	        JMenuItem newMenuItem = new JMenuItem("New...", newFile);
+	        newMenuItem.setMnemonic(KeyEvent.VK_N);
+	        newMenuItem.setToolTipText("Start a program from scratch.");
+	        newMenuItem.addActionListener(new ActionListener() 
+	        {
+	            @Override
+	            public void actionPerformed(ActionEvent event) 
+	            {
+	                  ideMain.reset();              
+	            }
+	            
+	        });
+	  
+
+		
+		JMenuItem openMenuItem = new JMenuItem("Load...", open);
 		openMenuItem.setMnemonic(KeyEvent.VK_L);
-		openMenuItem.setToolTipText("Load mutiple images");
+		openMenuItem.setToolTipText("Load #AnyaBasic Program ");
 		openMenuItem.addActionListener(new ActionListener() 
 		{
 			@Override
-			public void actionPerformed(ActionEvent event) 
-			{
-				JFileChooser fileChooser = new JFileChooser();
-				
-				FileFilter filter = new FileNameExtensionFilter( "Image files(png, bmp, jpg, gif)", 
-																 "png",
-																 "bmp",
-																 "gif",
-																 "jpg", 
-																 "jpeg");
-				fileChooser.addChoosableFileFilter(filter);
-				fileChooser.setCurrentDirectory(new File(this.getClass().getClassLoader().getResource("").getPath()));
-				fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-				fileChooser.setMultiSelectionEnabled(true);
-				int returnValue = fileChooser.showOpenDialog(parent);
-            	if (returnValue == JFileChooser.APPROVE_OPTION) 
-            	{
-    				
-                    File[] selectedFiles = fileChooser.getSelectedFiles();
+	         public void actionPerformed(ActionEvent event) 
+            {
+                
+                JFileChooser fileChooser = new JFileChooser();
+                
+                String currentFileName = ideMain.getCurrentFileName();
+                String currentFileNameFolder = ideMain.getCurrentFileNameFolder();
+                
+                fileChooser.setCurrentDirectory(
+                        new File(this.getClass().getClassLoader().getResource(".").getPath()
+                        + "/" + currentFileNameFolder));
+                fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                
+                FileFilter filter = new FileNameExtensionFilter( "#AnyaBasic sourcefiles", 
+                                                                 "abs");
+                fileChooser.setFileFilter(filter);
+                fileChooser.setMultiSelectionEnabled(false);
+                int returnValue = fileChooser.showOpenDialog(parent);
+                
+                if (returnValue == JFileChooser.APPROVE_OPTION) 
+                {                   
+                    File selectedFile = fileChooser.getSelectedFile();
+                    
+                    currentFileName = selectedFile.getName();
+                    
+                    ideMain.setCurrentFileName(currentFileName);
+                    
+                    File rel = new File(selectedFile.getAbsolutePath());
+                    rel = rel.getParentFile();
+                    currentFileNameFolder = rel.getName();
+                    ideMain.setCurrentFileNameFolder(currentFileNameFolder);
+                    
+                    System.out.println("filename: " + currentFileName);
+                    System.out.println("folder: " + currentFileNameFolder);
+                    
+                    ideMain.sourceTreeReprocess(currentFileName, currentFileNameFolder);
+                                                
                 }
-            	else
-            	{
-            		
-            	}
-			}
+                
+            }
+
 		});
   
 	
-		JMenuItem folderMenuItem = new JMenuItem("Load Folder", folder);
-		folderMenuItem.setMnemonic(KeyEvent.VK_L);
-		folderMenuItem.setToolTipText("Load all images inside a folder");
-		folderMenuItem.addActionListener(new ActionListener() 
-		{
-			@Override
-			public void actionPerformed(ActionEvent event) 
-			{
-				JFileChooser fileChooser = new JFileChooser();
-				
-				fileChooser.setCurrentDirectory(new File(this.getClass().getClassLoader().getResource(".").getPath()));
-				fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-				int returnValue = fileChooser.showOpenDialog(parent);
-            	if (returnValue == JFileChooser.APPROVE_OPTION) 
-            	{
-    				
-            		FilenameFilter filter = new FilenameFilter() 
-            		{
-            		    public boolean accept(File dir, String name) 
-            		    {
-            		        return ( name.endsWith(".png") || 
-            		        		 name.endsWith(".bmp") ||
-            		        		 name.endsWith(".gif") ||
-            		        		 name.endsWith(".jpg") ||
-            		        		 name.endsWith(".jpeg") );
-            		    }
-            		};
-            		
-                    File folder = fileChooser.getSelectedFile();
-                    File[] selectedFiles = folder.listFiles(filter);
-                }
-			}
-			
-		});
-  
 	
-		JMenuItem resetMenuItem = new JMenuItem("Reset", reset);
-		resetMenuItem.setMnemonic(KeyEvent.VK_R);
-		resetMenuItem.setToolTipText("Reset settings to default");
-		resetMenuItem.addActionListener(new ActionListener() 
-		{
-			@Override
-			public void actionPerformed(ActionEvent event) 
-			{
-			}
-		});
-  
-		
-		JMenuItem saveMenuItem = new JMenuItem("Save", save);
+		saveMenuItem = new JMenuItem("Save", save);
 		saveMenuItem.setMnemonic(KeyEvent.VK_S);
 		saveMenuItem.setEnabled(false);
-		saveMenuItem.setToolTipText("Save Atlas");
+		saveMenuItem.setToolTipText("Save Program");
 		saveMenuItem.addActionListener(new ActionListener() 
 		{
 			
 			@Override
 			public void actionPerformed(ActionEvent event) 
-			{
-				
-				int n = JOptionPane.showConfirmDialog( parent, 
-						   "Would you like to save the spritesheet?",
-						   "Save Atlas",
-						   JOptionPane.YES_NO_OPTION );
-					if (n == JOptionPane.YES_OPTION) 
-					{
-						//PackerValues.getInstance().setFileName(
-						//		PackerValues.getInstance().getTxFileName().getText() );
-						//File folder = new File( "output/" + PackerValues.getInstance().getFileName() +".png" );
-						//try
-						//{
-						//	ImageIO.write(PackerValues.getInstance().getPackerTexture(), "png", folder);
-						//} catch (IOException e)
-						//{
-							// TODO Auto-generated catch block
-						//	e.printStackTrace();
-						//}
-						
-						//File folderIdx = new File( "output/" + PackerValues.getInstance().getFileName() +"Index.png" );
-						//try
-						//{
-						//	PackerValues.getInstance().getTexturePacker().createTextureIndex();
-						//	ImageIO.write(PackerValues.getInstance().getTexturePacker().getTextureIndex(), "png", folderIdx);
-						//} catch (IOException e)
-						//{
-							// TODO Auto-generated catch block
-						//	e.printStackTrace();
-						//}
-						
-						//int width = PackerValues.getInstance().getAtlasWidth();
-						//int height = PackerValues.getInstance().getAtlasHeight();
-						//TexturePacker texturePacker = PackerValues.getInstance().getTexturePacker();
-						
-						//SaveC saveC = new SaveC( width,height,texturePacker.getCoords() );
-						//saveC.saveToFileCoords( "output/" + PackerValues.getInstance().getFileName() );
-						
-						//PackerValues.getInstance().getAnimatedLabel().setMyText("Atlas saved. Ready for another set of images...");
-						
-						JOptionPane.showMessageDialog( parent, 
-								   "SpriteSheet Saved",
-								   "Please load another set of images.",
-								   JOptionPane.INFORMATION_MESSAGE );
-					
-					}
-					
-				
-				
-				/*
-				JFileChooser fileChooser = new JFileChooser();
-				
-				FileFilter filter = new FileNameExtensionFilter( "Image files(png, bmp, jpg, tga, gif)", 
-																 "png",
-																 "bmp",
-																 "gif",
-																 "jpg", 
-																 "jpeg");
-
-        		fileChooser.setFileFilter(filter);
-        		fileChooser.setCurrentDirectory(new File(this.getClass().getClassLoader().getResource("").getPath()));
-				int returnValue = fileChooser.showSaveDialog(parent);
-            	if (returnValue == JFileChooser.APPROVE_OPTION) 
-            	{
-            		
-            	    File folder = fileChooser.getSelectedFile();
-            	    
-            	    String output = PackerValues.getInstance().getFileName()+".png";
-            	    File outputfile = new File(folder.getAbsolutePath() + output);
-            	    System.out.println(outputfile);
-            	    try
-					{
-						ImageIO.write(PackerValues.getInstance().getPackerTexture(), "png", folder);
-						PackerValues.getInstance().getAnimatedLabel().setMyText("Atlas saved. Ready for another set of images...");
-					} catch (IOException e)
-					{
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+            {
+        
+                int n = JOptionPane.showConfirmDialog( parent, 
+                           "Would you like to save the code?",
+                           "Save code",
+                           JOptionPane.YES_NO_OPTION );
+                if (n == JOptionPane.YES_OPTION) 
+                {
+                    JOptionPane.showMessageDialog( parent, 
+                       "Code Saved",
+                       "",
+                       JOptionPane.INFORMATION_MESSAGE );
+                    String currentFileName = ideMain.getCurrentFileName();
+                    String currentFileNameFolder = ideMain.getCurrentFileNameFolder();
+                    Utils.saveProgram(textPane, currentFileName, currentFileNameFolder);
+                            
                 }
-            	else
-            	{
-            		
-            	}
-            	*/
-			}
-			
-			
+
+            }
+
 			
 		});
   
 	
-		JMenuItem saveAsMenuItem = new JMenuItem("Save as...", save);
+		saveAsMenuItem = new JMenuItem("Save as...", save);
 		saveAsMenuItem.setMnemonic(KeyEvent.VK_A);
 		saveAsMenuItem.setToolTipText("Save Atlas in a different folder");
 		saveAsMenuItem.setEnabled(false);
@@ -265,49 +228,72 @@ public class Menu extends JMenuBar
 		{
 			@Override
 			public void actionPerformed(ActionEvent event) 
-			{
-				
-				JFileChooser fileChooser = new JFileChooser();
-				
-				FileFilter f = new FileNameExtensionFilter( "JPEG", 
-					    									"jpeg" );
-				fileChooser.addChoosableFileFilter(f);
-				
-				f = new FileNameExtensionFilter( "JPG", 
-												  "jpg" );
-		
-				f = new FileNameExtensionFilter( "PNG", 
-					    						 "png" );
-				fileChooser.addChoosableFileFilter(f);
-			
-				fileChooser.setCurrentDirectory(new File(this.getClass().getClassLoader().getResource("").getPath()));
-				fileChooser.setSelectedFile(new File("texturepack.png"));
-				int returnValue = fileChooser.showSaveDialog(parent);
-            	if (returnValue == JFileChooser.APPROVE_OPTION) 
-            	{
-            		
-            		FileFilter fileFilter = fileChooser.getFileFilter(); 
-            	    File filename = fileChooser.getSelectedFile();
-            	    //if (filename.getName().toLowerCase().endsWith(fileFilter.getDescription().toLowerCase()) )
-            	    //{
-            	    	//File filenameToSave = fileChooser.getSelectedFile().
-            	    //}
-            	    //else
-            	    //{
-            	    	
-            	    //}
-            	    //try
-					//{
-					//} 
-            	    //catch (IOException e)
-					//{
-						// TODO Auto-generated catch block
-					//	e.printStackTrace();
-					//}
+            {
+                JFileChooser fileChooser = new JFileChooser();
+                
+                String currentFileName = ideMain.getCurrentFileName();
+                String currentFileNameFolder = ideMain.getCurrentFileNameFolder();
+                
+                fileChooser.setCurrentDirectory(new File(
+                        this.getClass().getClassLoader().getResource(".").getPath()
+                        + "/" + currentFileNameFolder));
+                fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                FileFilter filter = new FileNameExtensionFilter( "#AnyaBasic sourcefiles", 
+                        "abs");
+                fileChooser.setFileFilter(filter);
+                fileChooser.setMultiSelectionEnabled(false);
+                int returnValue = fileChooser.showSaveDialog(parent);
+                if (returnValue == JFileChooser.APPROVE_OPTION) 
+                {
+                    
+                    File file = fileChooser.getSelectedFile();
+                    //System.out.println("selected file: " + file.getName());
+                    //File f = new File(file.getName());
+                    currentFileName  = file.getName();
+                    ideMain.setCurrentFileName(currentFileName);
+                    
+                    File f = new File(
+                            this.getClass().getClassLoader().getResource(".").getPath()
+                            + "/" + currentFileNameFolder
+                            + "/" + currentFileName);
+                    if(f.exists() && f.isFile()) 
+                    { 
+                        int res = JOptionPane.showConfirmDialog(parent,
+                                currentFileName 
+                                + " exists!!! \n"+
+                                "\n" +
+                                " "+
+                                "Overwrite file?\n",
+                                "Warning!",
+                                JOptionPane.YES_NO_OPTION,
+                                JOptionPane.WARNING_MESSAGE);
+                        System.out.println( currentFileName + " exists ");
+                        if( res ==  JOptionPane.YES_OPTION )
+                        {
+                            currentFileName = ideMain.getCurrentFileName();
+                            currentFileNameFolder = ideMain.getCurrentFileNameFolder();
+                            Utils.saveProgram(textPane, currentFileName, currentFileNameFolder);
+                            currentFileNameFolder = "myprograms";
+                            ideMain.treeWorkspaceProcessDirectories();
+                            currentFileNameFolder = "samples";
+                            ideMain.treeWorkspaceProcessDirectories();
+                            
+                        }
+                    }
+                    else
+                    {
+                        currentFileName = ideMain.getCurrentFileName();
+                        currentFileNameFolder = ideMain.getCurrentFileNameFolder();
+                        Utils.saveProgram(textPane, currentFileName, currentFileNameFolder);
+                        currentFileNameFolder = "myprograms";
+                        ideMain.treeWorkspaceProcessDirectories();
+                        currentFileNameFolder = "samples";
+                        ideMain.treeWorkspaceProcessDirectories();
+                        
+                    }
+                        
                 }
-            	
-
-			}
+            }
 		});
   
 	
@@ -328,13 +314,11 @@ public class Menu extends JMenuBar
 		});
   
 	
-		file.add(openMenuItem);
-		file.add(folderMenuItem);
+		file.add(newMenuItem);
+        file.add(openMenuItem);
 		file.addSeparator();
 		file.add(saveMenuItem);
 		file.add(saveAsMenuItem);
-		file.addSeparator();
-		file.add(resetMenuItem);
 		file.addSeparator();
 		file.add(exitMenuItem);
 		
@@ -622,9 +606,10 @@ public class Menu extends JMenuBar
 					    "AnyaBasic IDE \n"+
 					    "\n"+
 					    "Richard Eric M. Lope\n"+
-					    "http://rel.phatcode.net",
+					    "http://rel.phatcode.net\n"+
+					    "Icons by https://icons8.com/",
 					    "About",
-					    JOptionPane.PLAIN_MESSAGE);
+					    JOptionPane.INFORMATION_MESSAGE);
 			}
 		
 		});
@@ -643,6 +628,19 @@ public class Menu extends JMenuBar
 		    	
 	}
 
+	public void updateSaveItems()
+	{
+	    if(textPane.getText().equals(""))
+	    {
+	        saveMenuItem.setEnabled(false);
+	        saveAsMenuItem.setEnabled(false);
+	    }
+	    else
+	    {
+	        saveMenuItem.setEnabled(true);
+            saveAsMenuItem.setEnabled(true);
+	    }
+	}
 	
 	private void createDirectory( String directoryName )
 	{
@@ -666,11 +664,6 @@ public class Menu extends JMenuBar
 	}
 
 
-	public void setFrame(IDEmain ideMain)
-	{
-		this.ideMain = ideMain;
-	}
-
 
 	public SourceProcessor getSourceProcessor()
 	{
@@ -688,8 +681,79 @@ public class Menu extends JMenuBar
     {
         this.fontSize = fontSize;
     }
-	
-	
-	//public void setTypeNode(DefaultMutableTreeNode)
+
+
+    public void setIdeMain(IDEmain ideMain)
+    {
+        this.ideMain = ideMain;
+    }
+
+
+    public void setSourceProcessor(SourceProcessor sourceProcessor)
+    {
+        this.sourceProcessor = sourceProcessor;
+    }
+
+
+    public void setSourceTree(JTree sourceTree)
+    {
+        this.sourceTree = sourceTree;
+    }
+
+
+    public void setWorkspaceTree(JTree workspaceTree)
+    {
+        this.workspaceTree = workspaceTree;
+    }
+
+
+    public void setTypes(List<String> types)
+    {
+        this.types = types;
+    }
+
+
+    public void setVariables(List<String> variables)
+    {
+        this.variables = variables;
+    }
+
+
+    public void setFunctions(List<String> functions)
+    {
+        this.functions = functions;
+    }
+
+
+    public void setNodeRoot(DefaultMutableTreeNode nodeRoot)
+    {
+        this.nodeRoot = nodeRoot;
+    }
+
+
+    public void setNodeTypes(DefaultMutableTreeNode nodeTypes)
+    {
+        this.nodeTypes = nodeTypes;
+    }
+
+
+    public void setNodeVars(DefaultMutableTreeNode nodeVars)
+    {
+        this.nodeVars = nodeVars;
+    }
+
+
+    public void setNodeFuncs(DefaultMutableTreeNode nodeFuncs)
+    {
+        this.nodeFuncs = nodeFuncs;
+    }
+
+
+    public void setWpNodeRoot(DefaultMutableTreeNode wpNodeRoot)
+    {
+        this.wpNodeRoot = wpNodeRoot;
+    }
+
+    
 	
 }

@@ -1,17 +1,42 @@
+/********************************************************************
+ *  ToolBar.java
+ * 
+ *  Richard Eric Lope BSN RN
+ *  http://rel.phatcode.net
+ *  
+ * License MIT: 
+ * Copyright (c) 2023 Richard Eric Lope 
+
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do
+ * so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software. (As clarification, there is no
+ * requirement that the copyright notice and permission be included in binary
+ * distributions of the Software.)
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ *
+ *******************************************************************/
+
 package net.phatcode.rel.ide;
 
 import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.FilenameFilter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.List;
 
@@ -22,14 +47,12 @@ import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JTextArea;
-import javax.swing.JTextPane;
 import javax.swing.JToolBar;
 import javax.swing.JTree;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.Document;
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
 
 public class ToolBar extends JToolBar
 {
@@ -69,10 +92,6 @@ public class ToolBar extends JToolBar
     private DefaultMutableTreeNode nodeFuncs;
     private DefaultMutableTreeNode wpNodeRoot;
     
-	private String currentFileName = "";
-	private String currentFileNameFolder = "";
-	//private String relativeFolder = "";
-
 	
 
 	public ToolBar()
@@ -140,8 +159,10 @@ public class ToolBar extends JToolBar
 		{
 			@Override
 			public void actionPerformed(ActionEvent event) 
-			{
-				  ideMain.reset();          	
+			{ 
+			    ideMain.reset(); 
+			    ideMain.setCurrentFileName("temp001.abs");
+			    ideMain.setCurrentFileNameFolder("myprograms");
 			}
 		});
 	}
@@ -174,10 +195,12 @@ public class ToolBar extends JToolBar
 				//	e.printStackTrace();
 				//}
 				
-				boolean success = false;
 				
 				JFileChooser fileChooser = new JFileChooser();
 				
+				String currentFileName = ideMain.getCurrentFileName();
+	            String currentFileNameFolder = ideMain.getCurrentFileNameFolder();
+	            
 				fileChooser.setCurrentDirectory(
 				        new File(this.getClass().getClassLoader().getResource(".").getPath()
 				        + "/" + currentFileNameFolder));
@@ -193,91 +216,19 @@ public class ToolBar extends JToolBar
                     File selectedFile = fileChooser.getSelectedFile();
                     
                     currentFileName = selectedFile.getName();
+                    ideMain.setCurrentFileName(currentFileName);
                     
                     File rel = new File(selectedFile.getAbsolutePath());
                     rel = rel.getParentFile();
                     currentFileNameFolder = rel.getName();
+                    ideMain.setCurrentFileNameFolder(currentFileNameFolder);
                     
                     System.out.println(currentFileName);
                     System.out.println(currentFileNameFolder);
                     
-                    
-                    // todo: make a function of the below code that resets the source
-                    // tree and transfer it to IDEmain
-                    BufferedReader input;
-					try
-					{
-						input = new BufferedReader(new InputStreamReader(
-						        			   new FileInputStream(selectedFile)));
-						textPane.read(input, "READING FILE");
-						
-						success = true;
-					} 
-					catch (FileNotFoundException e)
-					{
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					} catch (IOException e)
-					{
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-                        
-                 }
-            	
-                if(success)
-                {
-                    
-                    nodeTypes.removeAllChildren();
-                    nodeVars.removeAllChildren();
-                    nodeFuncs.removeAllChildren();
-                    
-                	sourceProcessor.tokenize(textPane.getText());
-                	sourceProcessor.processTokens();
-                	types = sourceProcessor.getTypes();
-                	variables = sourceProcessor.getVariables();
-                	functions = sourceProcessor.getFunctions();
-                	
-                	for(String s: types )
-                	{
-                		DefaultMutableTreeNode types = new DefaultMutableTreeNode(s);
-                		nodeTypes.add(types);
-                		
-                	}
-                	
-                	for(String s: variables )
-                	{
-                		DefaultMutableTreeNode vars = new DefaultMutableTreeNode(s);
-                		nodeVars.add(vars);
-                		
-                	}
-                	
-                	for(String s: functions )
-                	{
-                		DefaultMutableTreeNode funcs = new DefaultMutableTreeNode(s);
-                		nodeFuncs.add(funcs);
-                		
-                	}
-                	
-                	// reset tree
-                	DefaultTreeModel model = (DefaultTreeModel) sourceTree.getModel();
-                	model.reload(nodeRoot);
-                	// expand tree
-                	JTree tree= sourceTree;
-                	int rows = tree.getRowCount();
-                	for( int r = rows - 1; r > -1; r--  )
-                	{
-                		tree.expandRow(r);
-                	}
-                	//set cursor to 5th row
-                	//JTextPane pane = textPane;
-                	//pane.setCaretPosition(pane.getDocument().
-                	//		getDefaultRootElement().
-                	//		getElement(4).getStartOffset());
-                	
-                			
-                }
-            	
+                    ideMain.sourceTreeReprocess(currentFileName, currentFileNameFolder);
+                            	
+            	}
 			}
 		});
 		
@@ -307,8 +258,9 @@ public class ToolBar extends JToolBar
 	                   "Code Saved",
 	                   "",
 	                   JOptionPane.INFORMATION_MESSAGE );
-	                
-	                saveProgram();
+	                String currentFileName = ideMain.getCurrentFileName();
+	                String currentFileNameFolder = ideMain.getCurrentFileNameFolder();
+	                Utils.saveProgram(textPane, currentFileName, currentFileNameFolder);
 	                        
 	            }
 
@@ -330,6 +282,9 @@ public class ToolBar extends JToolBar
             {
                 JFileChooser fileChooser = new JFileChooser();
                 
+                String currentFileName = ideMain.getCurrentFileName();
+                String currentFileNameFolder = ideMain.getCurrentFileNameFolder();
+                
                 fileChooser.setCurrentDirectory(new File(
                         this.getClass().getClassLoader().getResource(".").getPath()
                         + "/" + currentFileNameFolder));
@@ -346,6 +301,8 @@ public class ToolBar extends JToolBar
                     //System.out.println("selected file: " + file.getName());
                     //File f = new File(file.getName());
                     currentFileName  = file.getName();
+                    ideMain.setCurrentFileName(currentFileName);
+                    
                     File f = new File(
                             this.getClass().getClassLoader().getResource(".").getPath()
                             + "/" + currentFileNameFolder
@@ -364,12 +321,26 @@ public class ToolBar extends JToolBar
                         System.out.println( currentFileName + " exists ");
                         if( res ==  JOptionPane.YES_OPTION )
                         {
-                            saveProgram();
+                            currentFileName = ideMain.getCurrentFileName();
+                            currentFileNameFolder = ideMain.getCurrentFileNameFolder();
+                            Utils.saveProgram(textPane, currentFileName, currentFileNameFolder);
+                            currentFileNameFolder = "myprograms";
+                            ideMain.treeWorkspaceProcessDirectories();
+                            currentFileNameFolder = "samples";
+                            ideMain.treeWorkspaceProcessDirectories();
+                            
                         }
                     }
                     else
                     {
-                        saveProgram();
+                        currentFileName = ideMain.getCurrentFileName();
+                        currentFileNameFolder = ideMain.getCurrentFileNameFolder();
+                        Utils.saveProgram(textPane, currentFileName, currentFileNameFolder);
+                        currentFileNameFolder = "myprograms";
+                        ideMain.treeWorkspaceProcessDirectories();
+                        currentFileNameFolder = "samples";
+                        ideMain.treeWorkspaceProcessDirectories();
+                        
                     }
                         
                 }
@@ -529,8 +500,22 @@ public class ToolBar extends JToolBar
 			{
 			    
 			    // Automatically save file
-			    saveProgram();
-			    
+			    String currentFileName = ideMain.getCurrentFileName();
+                String currentFileNameFolder = ideMain.getCurrentFileNameFolder();
+                if(currentFileName.equals("") || currentFileNameFolder.equals(""))
+                {
+                    JOptionPane.showMessageDialog(parent,
+                            "File not saved! \n"+
+                            "\n"+
+                            "You need to save the file\n"+
+                            "before you can run it.",
+                            "",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                
+                Utils.saveProgram(textPane, currentFileName, currentFileNameFolder);
+               
 				//String[] command = {"C:/Dev/BASIC/AnyaBasic/AnyaBasic2022/runhelloworld.bat", ""};
 				//ProcessBuilder builder = new ProcessBuilder(command);
 				//builder = builder.directory(new File("C:/Dev/BASIC/AnyaBasic/AnyaBasic2022"));
@@ -560,7 +545,9 @@ public class ToolBar extends JToolBar
 					//Runtime.getRuntime().exec(new String[]{"cmd","/c","start","cmd","/k","java -jar AnyaBasic.jar samples/particles2.abs" + "\""});
 					
 					
-					
+				    currentFileName = ideMain.getCurrentFileName();
+		            currentFileNameFolder = ideMain.getCurrentFileNameFolder();
+		            
 					String command = "java -jar AnyaBasic.jar ";
 					command += currentFileNameFolder + "/" + currentFileName;
 					command += " "+ currentFileNameFolder;
@@ -585,29 +572,22 @@ public class ToolBar extends JToolBar
 
 	}
 	
-	private void saveProgram()
-	{
-	    
-        
-            try 
-            {
-                String text = textPane.getText();
-                BufferedWriter out;
-                out = new BufferedWriter(new FileWriter(currentFileNameFolder 
-                        + "/" + currentFileName));
-                out.write(text);
-                out.close();
-            } 
-            catch (IOException e) 
-            {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-
-                        
-        
-	}
-
+	public void updateSaveRunButtons()
+    {
+        if(textPane.getText().equals(""))
+        {
+            saveButton.setEnabled(false);
+            saveAsButton.setEnabled(false);
+            runButton.setEnabled(false);
+        }
+        else
+        {
+            saveButton.setEnabled(true);
+            saveAsButton.setEnabled(true);
+            runButton.setEnabled(true);
+        }
+    }
+    
 	private void createDirectory( String directoryName )
 	{
 	  File theDir = new File(directoryName);
@@ -665,16 +645,6 @@ public class ToolBar extends JToolBar
     public void setFunctions(List<String> functions)
     {
         this.functions = functions;
-    }
-
-    public void setCurrentFileName(String currentFileName)
-    {
-        this.currentFileName = currentFileName;
-    }
-
-    public void setCurrentFileNameFolder(String currentFileNameFolder)
-    {
-        this.currentFileNameFolder = currentFileNameFolder;
     }
 
     public void setWorkspaceTree(JTree workspaceTree)
