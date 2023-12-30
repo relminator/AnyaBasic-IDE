@@ -38,6 +38,7 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.Box;
@@ -548,21 +549,51 @@ public class ToolBar extends JToolBar
 				    currentFileName = ideMain.getCurrentFileName();
 		            currentFileNameFolder = ideMain.getCurrentFileNameFolder();
 		            
-					String command = "java -jar AnyaBasic.jar ";
-					command += currentFileNameFolder + "/" + currentFileName;
-					command += " "+ currentFileNameFolder;
+					//String command = "java -jar AnyaBasic.jar ";
+		            //String command = "";
+		            //command += currentFileNameFolder + "/" + currentFileName;
+					//command += " "+ currentFileNameFolder;
 					
-					Runtime.getRuntime().exec(new String[]{"cmd","/c","start","cmd","/k", command});
+					//Runtime.getRuntime().exec( command );
+                    
+					//Runtime.getRuntime().exec(new String[]{"cmd","/c","start","cmd","/k", command});
 					
 					//System.out.println( command  );
-                    
-					//List<String> command = new ArrayList<String>();
-				    //command.add("java ");
-				    //command.add("-jar ");
-				    //command.add("AnyaBasic2022.jar ");
-				    //command.add("samples/bubbles.abs");
-				    //ProcessBuilder builder = new ProcessBuilder(command);		    
-				    //Process process = builder.start();		
+                    /*
+                     * String path = currentFileNameFolder + "/" + currentFileName; path += " "+
+                     * currentFileNameFolder;
+                     * 
+                     * ProcessBuilder pb = new ProcessBuilder("java", "-jar",
+                     * "C:/Dev/BASIC/AnyaBasic/AnyaBasic2022/AnyaBasic.jar", path ); Process p =
+                     * pb.start(); BufferedReader in = new BufferedReader(new
+                     * InputStreamReader(p.getInputStream())); String s = ""; while((s =
+                     * in.readLine()) != null){ System.out.println(s); } int status; try { status =
+                     * p.waitFor(); System.out.println("Exited with status: " + status); } catch
+                     * (InterruptedException e) { // TODO Auto-generated catch block
+                     * e.printStackTrace(); }
+                     */
+					List<String> commands = new ArrayList<String>();
+					//commands.add("cmd");
+					//commands.add("/c");
+					//commands.add("start");
+					//commands.add("cmd");
+					//commands.add("/k");
+                    commands.add("java");
+                    commands.add("-Djava.library.path=.");
+                    commands.add("-jar");
+				    commands.add("AnyaBasic.jar");
+				    commands.add(currentFileNameFolder + "/" + currentFileName);
+				    commands.add("./"+currentFileNameFolder);
+                    ProcessBuilder builder = new ProcessBuilder(commands);		    
+				    Process process = builder.start();
+				    try
+                    {
+                        process.waitFor();
+                    } catch (InterruptedException e)
+                    {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();

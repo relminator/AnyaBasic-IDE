@@ -793,6 +793,16 @@ public class IDEmain extends JFrame
         System.out.println("Name: " + System.getProperty(nameOS));
         System.out.println("Version: " + System.getProperty(versionOS));
         System.out.println("Architecture: " + System.getProperty(architectureOS));
+        
+        BufferedReader lineRead = new BufferedReader(new InputStreamReader(System.in));
+        String input = "";
+        try
+        {
+            input = lineRead.readLine();
+        } catch (IOException e)
+        {
+            System.out.println("Error in Input method" + e);
+        }
 
     }
 
