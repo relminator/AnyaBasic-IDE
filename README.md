@@ -3,11 +3,11 @@ A minimalistic editor for #AnyaBasic
 
 Release 0.7.0
 
-![Alt text](screenshots/ab_screen_01.png)
+![Alt text](assets/ab_screen_01.png)
 
-![Alt text](screenshots/ab_screen_02.png)
+![Alt text](assets/ab_screen_02.png)
 
-![Alt text](screenshots/ab_screen_03.png)
+![Alt text](assets/ab_screen_03.png)
 
 Author: Relminator (Richard Eric M. Lope)
             http://rel.phatcode.net
